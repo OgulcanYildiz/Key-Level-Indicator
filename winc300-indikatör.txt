@@ -6,29 +6,25 @@
 
 indicator("WinningCircle 300 Key Levels", overlay = true, shorttitle = "WinC300")
 
-// Style //
+// Style // written for default shape settings. 
 
 var CizgiKalinligi = 1  
 var CizgiTipi = line.style_solid
-var LabelStyle = label.style_none  //Değişebilir. Labelleri incele. 
-var LabelSize = size.normal  //Değişebilir.
-   //Tail olup olmamasından emin olamadım.
+var LabelStyle = label.style_none  
+var LabelSize = size.normal  
+  
  
-// Bunları input olarak nasıl vermeyebilirim ? )// Pazartesi günü weekly ve daily çakışıyor!!!!!!!!(offset değiştrme dışında ne yapılabilir ??? ) Bu ne saçmalıkamk //
+// Setting default offset 
 offset = 40
 offsetw = 70
 
-gerekli = time+(offset*(time - time[1]))
-gerekliw = time+(offsetw*(time - time[1]))
+gerekli = time+(offset*(time - time[1])) // A formula to create a line or label of a given length at specified time intervals 
+gerekliw = time+(offsetw*(time - time[1])) // A formula to create a line or label of a given length at specified time intervals
 
-// Input-Opens// 
+// Input-Opens//  
 
-// INPUTLARI IF ELSE KULLANARAK FONSKİYONA BAGLA !!!!!!!!!!!! //
-
-
-
-var IsDailyOpen_Okay = input.bool(defval = true, title = "Daily Open", inline = "Daily", group = "Open") // Ayarlar sekmesinde Opens grubunda, Daily open seçeneği açar - açıp kapanabilecek.
-var daily_color = input.color(defval=color.black, title = "", inline ="Daily", group = "Open") // Renk seçme hakkı verir. Üstüdnekiyle aynı line'da olur. 
+var IsDailyOpen_Okay = input.bool(defval = true, title = "Daily Open", inline = "Daily", group = "Open") // In the Settings tab, in the Opens group, in the Opens tab, the Daily open option opens - you will be able to turn it on and off.
+var daily_color = input.color(defval=color.black, title = "", inline ="Daily", group = "Open") // Allows you to choose the color.
 
 var IsWeeklyOpen_Okay = input.bool(defval = true, title = "Weekly Open", inline = "Weekly", group = "Open")
 var weekly_color = input.color(defval=color.blue, title = "", inline ="Weekly", group = "Open")
@@ -36,19 +32,14 @@ var weekly_color = input.color(defval=color.blue, title = "", inline ="Weekly", 
 var IsMonthlyOpen_Okay = input.bool(defval = true, title = "Monthly Open", inline = "Monthly", group = "Open")
 var monthly_color = input.color(defval=color.red, title = "", inline ="Monthly", group = "Open")
 
-/// Quarterly Open ///
-
-var Qua_Open = input.bool(defval = true, title = "Quarterly Open", inline = "Quarterly Open",group = "Open")
+var Qua_Open = input.bool(defval = false, title = "Quarterly Open", inline = "Quarterly Open",group = "Open")
 var c_QuaOpen = input.color(defval = color.olive,title = "",inline = "Quarterly Open",group = "Open")
 
-var IsYearlyOpen_Okay = input.bool(defval = true, title = "Yearly Open", inline = "Yearly", group = "Open")
+var IsYearlyOpen_Okay = input.bool(defval = false, title = "Yearly Open", inline = "Yearly", group = "Open")
 var yearly_color = input.color(defval=color.green, title = "", inline ="Yearly", group = "Open")
 
 
-
-
-
-//Input-Monday Range// 
+//Input-Monday Range //  Giving the user the ability to turn on/off the Monday high low mid level and select the color. 
 
 
 var IsMondayHigh_Okay = input.bool(defval=false, title = "Monday High",inline = "Monday High", group="Monday Range")
@@ -61,7 +52,7 @@ var IsMondayLow_Okay = input.bool(defval=false, title = "Monday Low",inline = "M
 var Mlow_color = input.color(defval=color.black, title = "", inline ="Monday Low", group="Monday Range")
 
 
-// Opens Veri Çekme // request.security -> symninfo.tickerid-timeframe-expression(!)-lookahead.
+// Opens Veri Çekme // Getting the data of the levels we want at the time intervals we want.
 
 [Daily_Time,Daily_Open] = request.security(syminfo.tickerid, "D", [time,open], lookahead = barmerge.lookahead_off)  // lookahead kısmından emin ol. 
 [Weekly_Time,Weekly_Open] = request.security(syminfo.tickerid, "W", [time,open], lookahead = barmerge.lookahead_off)
@@ -70,20 +61,15 @@ var Mlow_color = input.color(defval=color.black, title = "", inline ="Monday Low
 [quarterly_time,quarterly_open] = request.security(syminfo.tickerid,"3M",[time,open],lookahead = barmerge.lookahead_off)
 
 
-// Input-Previous // 
-// Gerekli olanlar hallolduktan sonra bakılabilir.Aklımda bulunsun.//
 
+// Monday Range Veri Çekme // Getting the data of Monday High-Mid-Low levels. 
 
-// Monday Range Veri Çekme //
 Monday_Open = request.security(syminfo.tickerid,'D',time('D'), lookahead = barmerge.lookahead_on)
 [Monday_High,Monday_Low] = request.security(syminfo.tickerid, 'D', [high,low],lookahead = barmerge.lookahead_on)
 Monday_Mid = math.avg(Monday_High,Monday_Low) //Emin Değilim Kontrol et. 
 
 
-// line komutlarına bak. line.new bak. 
-// Bazı mantıksal hatalar olaiblir. 
-
-
+ // This section was written to determine the monday range and display it as 1 week. 
 is_Monday () => dayofweek(time("D")) == dayofweek.monday 
 
 bars_until_end_of_week = if timeframe.isdaily
@@ -93,15 +79,15 @@ else
 
 line_end_right = Monday_Open + (time - time[1]) * bars_until_end_of_week // 
 
-
+// Writing line and label commands in the if block to display the indicator when the user turns on the desired level from the settings tab. 
 if is_Monday()
     if IsMondayHigh_Okay
-        monday_high_line=line.new(Monday_Open,Monday_High,line_end_right,Monday_High,xloc=xloc.bar_time,color = Mhigh_color)
-        line.delete(monday_high_line[1])
-        mondayHighLabel = label.new(line_end_right, Monday_High,"Monday High",xloc.bar_time,style =label.style_none)
-        label.delete(mondayHighLabel[1])
+        monday_high_line=line.new(Monday_Open,Monday_High,line_end_right,Monday_High,xloc=xloc.bar_time,color = Mhigh_color) // Plotting Monday High. 
+        line.delete(monday_high_line[1]) // The command deletes the previous line so there is no confusion. 
+        mondayHighLabel = label.new(line_end_right, Monday_High,"Monday High",xloc.bar_time,style =label.style_none) // Label command to show the level of the line we are plotting.
+        label.delete(mondayHighLabel[1]) // The command deletes the previous label so there is no confusion.
 
-    //label ekle-inputları bu fonksiyona bağla//
+
     if IsMondayLow_Okay
         monday_low_line=line.new(Monday_Open,Monday_Low,line_end_right,Monday_Low,xloc.bar_time,color = Mlow_color)
         line.delete(monday_low_line[1])
@@ -115,32 +101,25 @@ if is_Monday()
         mondayMidLabel = label.new(line_end_right, Monday_Mid,"Monday Mid",xloc.bar_time,style = label.style_none)
         label.delete(mondayMidLabel[1])
 
-    //label ekle-inputları bu fonksiyona bağla//
-
-    // Bunlar niye sarı mQ  // 
-
-    // Monday Range Label //
 
 
-
-
-// open line-label //
-
-
-
+// Open Line - Label //  Writing line and label commands in the if block to display the indicator when the user turns on the desired level from the settings tab.
+// Writing the command we wrote for Monday levels on a daily-weekly-monthly-quarterly and yearly basis. 
 
 if IsDailyOpen_Okay
-    dailyOpenLine = line.new(Daily_Time,Daily_Open,time+(offset*(time - time[1])),Daily_Open,xloc.bar_time,color = daily_color,style = CizgiTipi) // x2 ??? 
-    line.delete(dailyOpenLine[1])  // bir öncekini silerek tekrarı yaptırmaz. 
+    dailyOpenLine = line.new(Daily_Time,Daily_Open,time+(offset*(time - time[1])),Daily_Open,xloc.bar_time,color = daily_color,style = CizgiTipi) // 
+    line.delete(dailyOpenLine[1])  
     dailyOpenLAbel = label.new(gerekli,Daily_Open,'Daily Open',xloc.bar_time,style = label.style_none)
     label.delete(dailyOpenLAbel[1])
+
 if IsWeeklyOpen_Okay
-    weeklyOpenLine = line.new(Weekly_Time,Weekly_Open,time+(offset*(time - time[1])),Weekly_Open,xloc.bar_time,color = weekly_color, style = CizgiTipi) // x2 ??? 
+    weeklyOpenLine = line.new(Weekly_Time,Weekly_Open,time+(offset*(time - time[1])),Weekly_Open,xloc.bar_time,color = weekly_color, style = CizgiTipi) 
     line.delete(weeklyOpenLine[1])  
     weeklyOpenLAbel = label.new(gerekli,Weekly_Open,'Weekly Open',xloc.bar_time,style = label.style_none)
     label.delete(weeklyOpenLAbel[1])
+
 if IsMonthlyOpen_Okay    
-    monthlyOpenLine = line.new(Monthly_Time,Monthly_Open,time+(offset*(time - time[1])),Monthly_Open,xloc.bar_time,color = monthly_color,style = CizgiTipi) // x2 ??? 
+    monthlyOpenLine = line.new(Monthly_Time,Monthly_Open,time+(offset*(time - time[1])),Monthly_Open,xloc.bar_time,color = monthly_color,style = CizgiTipi)  
     line.delete(monthlyOpenLine[1]) 
     monthlyOpenLAbel = label.new(gerekli,Monthly_Open,'Monthly Open',xloc.bar_time,style = label.style_none)
     label.delete(monthlyOpenLAbel[1])
@@ -157,22 +136,10 @@ if IsYearlyOpen_Okay
     yearlyOpenLAbel = label.new(gerekli,Yearly_Open,'Yearly Open',xloc.bar_time,style = label.style_none)
     label.delete(yearlyOpenLAbel[1])
 
-// // Monday Range Label // üste if'le ekle error verir. 
-
-// mondayHighLabel = label.new(line_end_right, Monday_High,"Monday High",xloc.bar_time,style =label.style_none)
-// label.delete(mondayHighLabel[1])
-
-// mondayMidLabel = label.new(line_end_right, Monday_Mid,"Monday Mid",xloc.bar_time,style = label.style_none)
-// label.delete(mondayMidLabel[1])
-
-// mondayLowLabel = label.new(line_end_right, Monday_Low, "Monday Low",xloc.bar_time,style = label.style_none)
-// label.delete(mondayLowLabel[1])
 
 
-////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////
-////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////
-
-// Previous //
+// Previous // The previous day-week-monthly highs and lows are presented to the user in a way that can be turned on and off in the settings tab. 
+// The user is given the option to choose the color. 
 
 var preDailyHigh = input.bool(defval = true, title ="PDH", inline= "PDH", group ="Previous")
 var c_preDailyHigh = input.color(defval = color.navy,title = "",inline="PDH",group = "Previous")
@@ -195,7 +162,9 @@ var c_preMonthlyOpen = input.color(defval = color.silver, title= "",inline =  "P
 
 
 
-// Previous Veri Çekme // 
+// Previous Veri Çekme //  Getting the data of the levels we want at the time intervals we want. 
+
+// The variable names will give information about which level we are getting data for. 
 
 pDailyTime = request.security(syminfo.tickerid,"D",time[1],lookahead = barmerge.lookahead_off)
 [pDaily_High,pDaily_Low] = request.security(syminfo.tickerid,"D",[high[1],low[1]],lookahead = barmerge.lookahead_off)
@@ -208,13 +177,15 @@ pMonthlyTime = request.security(syminfo.tickerid,"M",time[1],lookahead = barmerg
 pMonthlyOpen = request.security(syminfo.tickerid,"M",open[1],lookahead = barmerge.lookahead_off)
 
 /// Previous Line and Label /// 
+//  Writing line and label commands in the if block to display the indicator when the user turns on the desired level from the settings tab.
+// 
 
 if preDailyHigh
     pdh_line = line.new(pDailyTime,pDaily_High,time+(offset*(time - time[1])),pDaily_High, xloc = xloc.bar_time,color = c_preDailyHigh,style = CizgiTipi)
     line.delete(pdh_line[1])
     pdh_Label = label.new(gerekli,pDaily_High,'Previous Daily High',xloc.bar_time,style = label.style_none)
     label.delete(pdh_Label[1])
-    // label ekle// if ekle // input bağla//
+    
 if preDailyLow
     pdl_line =  line.new(pDailyTime,pDaily_Low,time+(offset*(time - time[1])),pDaily_Low, xloc = xloc.bar_time,color = c_preDailyHigh,style = CizgiTipi)
     line.delete(pdl_line[1])
@@ -237,13 +208,8 @@ if preWeeklyOpen
     pwo_label = label.new(gerekli,pWeekly_Open,"Previous Weekly Open",xloc = xloc.bar_time,style = label.style_none)
     label.delete(pwo_label[1])
 
-
 if preMonthlyOpen
     pmo_line = line.new(pMonthlyTime,pMonthlyOpen,time+(offset*(time - time[1])),pMonthlyOpen, xloc = xloc.bar_time,color = c_preMonthlyOpen,style = CizgiTipi)
     line.delete(pmo_line[1])
     pmo_label = label.new(gerekli,pMonthlyOpen,"Previous Monthly Open",xloc = xloc.bar_time,style = label.style_none)
     label.delete(pmo_label[1])
-
-// PMO 
-
-//pmo pwo ekle!!
