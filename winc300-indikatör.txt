@@ -1,0 +1,249 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © ogulcaanyldz
+// 19.10.2022 
+
+//@version=5
+
+indicator("WinningCircle 300 Key Levels", overlay = true, shorttitle = "WinC300")
+
+// Style //
+
+var CizgiKalinligi = 1  
+var CizgiTipi = line.style_solid
+var LabelStyle = label.style_none  //Değişebilir. Labelleri incele. 
+var LabelSize = size.normal  //Değişebilir.
+   //Tail olup olmamasından emin olamadım.
+ 
+// Bunları input olarak nasıl vermeyebilirim ? )// Pazartesi günü weekly ve daily çakışıyor!!!!!!!!(offset değiştrme dışında ne yapılabilir ??? ) Bu ne saçmalıkamk //
+offset = 40
+offsetw = 70
+
+gerekli = time+(offset*(time - time[1]))
+gerekliw = time+(offsetw*(time - time[1]))
+
+// Input-Opens// 
+
+// INPUTLARI IF ELSE KULLANARAK FONSKİYONA BAGLA !!!!!!!!!!!! //
+
+
+
+var IsDailyOpen_Okay = input.bool(defval = true, title = "Daily Open", inline = "Daily", group = "Open") // Ayarlar sekmesinde Opens grubunda, Daily open seçeneği açar - açıp kapanabilecek.
+var daily_color = input.color(defval=color.black, title = "", inline ="Daily", group = "Open") // Renk seçme hakkı verir. Üstüdnekiyle aynı line'da olur. 
+
+var IsWeeklyOpen_Okay = input.bool(defval = true, title = "Weekly Open", inline = "Weekly", group = "Open")
+var weekly_color = input.color(defval=color.blue, title = "", inline ="Weekly", group = "Open")
+
+var IsMonthlyOpen_Okay = input.bool(defval = true, title = "Monthly Open", inline = "Monthly", group = "Open")
+var monthly_color = input.color(defval=color.red, title = "", inline ="Monthly", group = "Open")
+
+/// Quarterly Open ///
+
+var Qua_Open = input.bool(defval = true, title = "Quarterly Open", inline = "Quarterly Open",group = "Open")
+var c_QuaOpen = input.color(defval = color.olive,title = "",inline = "Quarterly Open",group = "Open")
+
+var IsYearlyOpen_Okay = input.bool(defval = true, title = "Yearly Open", inline = "Yearly", group = "Open")
+var yearly_color = input.color(defval=color.green, title = "", inline ="Yearly", group = "Open")
+
+
+
+
+
+//Input-Monday Range// 
+
+
+var IsMondayHigh_Okay = input.bool(defval=false, title = "Monday High",inline = "Monday High", group="Monday Range")
+var Mhigh_color = input.color(defval=color.black, title = "", inline ="Monday High", group="Monday Range")
+
+var IsMondayMid_Okay = input.bool(defval=false, title = "Monday Mid",inline = "Monday Mid", group="Monday Range")
+var Mmid_color = input.color(defval=color.black, title = "", inline ="Monday Mid", group="Monday Range")
+
+var IsMondayLow_Okay = input.bool(defval=false, title = "Monday Low",inline = "Monday Low", group="Monday Range")
+var Mlow_color = input.color(defval=color.black, title = "", inline ="Monday Low", group="Monday Range")
+
+
+// Opens Veri Çekme // request.security -> symninfo.tickerid-timeframe-expression(!)-lookahead.
+
+[Daily_Time,Daily_Open] = request.security(syminfo.tickerid, "D", [time,open], lookahead = barmerge.lookahead_off)  // lookahead kısmından emin ol. 
+[Weekly_Time,Weekly_Open] = request.security(syminfo.tickerid, "W", [time,open], lookahead = barmerge.lookahead_off)
+[Monthly_Time,Monthly_Open] = request.security(syminfo.tickerid, "M", [time,open], lookahead = barmerge.lookahead_off)
+[Yearly_Time,Yearly_Open] = request.security(syminfo.tickerid, "12M",  [time,open], lookahead = barmerge.lookahead_off)
+[quarterly_time,quarterly_open] = request.security(syminfo.tickerid,"3M",[time,open],lookahead = barmerge.lookahead_off)
+
+
+// Input-Previous // 
+// Gerekli olanlar hallolduktan sonra bakılabilir.Aklımda bulunsun.//
+
+
+// Monday Range Veri Çekme //
+Monday_Open = request.security(syminfo.tickerid,'D',time('D'), lookahead = barmerge.lookahead_on)
+[Monday_High,Monday_Low] = request.security(syminfo.tickerid, 'D', [high,low],lookahead = barmerge.lookahead_on)
+Monday_Mid = math.avg(Monday_High,Monday_Low) //Emin Değilim Kontrol et. 
+
+
+// line komutlarına bak. line.new bak. 
+// Bazı mantıksal hatalar olaiblir. 
+
+
+is_Monday () => dayofweek(time("D")) == dayofweek.monday 
+
+bars_until_end_of_week = if timeframe.isdaily
+    7
+else 
+    (1440 / timeframe.multiplier) * 7 
+
+line_end_right = Monday_Open + (time - time[1]) * bars_until_end_of_week // 
+
+
+if is_Monday()
+    if IsMondayHigh_Okay
+        monday_high_line=line.new(Monday_Open,Monday_High,line_end_right,Monday_High,xloc=xloc.bar_time,color = Mhigh_color)
+        line.delete(monday_high_line[1])
+        mondayHighLabel = label.new(line_end_right, Monday_High,"Monday High",xloc.bar_time,style =label.style_none)
+        label.delete(mondayHighLabel[1])
+
+    //label ekle-inputları bu fonksiyona bağla//
+    if IsMondayLow_Okay
+        monday_low_line=line.new(Monday_Open,Monday_Low,line_end_right,Monday_Low,xloc.bar_time,color = Mlow_color)
+        line.delete(monday_low_line[1])
+        mondayLowLabel = label.new(line_end_right, Monday_Low, "Monday Low",xloc.bar_time,style = label.style_none)
+        label.delete(mondayLowLabel[1])
+
+    //label ekle-inputları bu fonksiyona bağla//
+    if IsMondayMid_Okay
+        monday_mid_line=line.new(Monday_Open,Monday_Mid,line_end_right,Monday_Mid,xloc.bar_time,color = Mmid_color)
+        line.delete(monday_mid_line[1])
+        mondayMidLabel = label.new(line_end_right, Monday_Mid,"Monday Mid",xloc.bar_time,style = label.style_none)
+        label.delete(mondayMidLabel[1])
+
+    //label ekle-inputları bu fonksiyona bağla//
+
+    // Bunlar niye sarı mQ  // 
+
+    // Monday Range Label //
+
+
+
+
+// open line-label //
+
+
+
+
+if IsDailyOpen_Okay
+    dailyOpenLine = line.new(Daily_Time,Daily_Open,time+(offset*(time - time[1])),Daily_Open,xloc.bar_time,color = daily_color,style = CizgiTipi) // x2 ??? 
+    line.delete(dailyOpenLine[1])  // bir öncekini silerek tekrarı yaptırmaz. 
+    dailyOpenLAbel = label.new(gerekli,Daily_Open,'Daily Open',xloc.bar_time,style = label.style_none)
+    label.delete(dailyOpenLAbel[1])
+if IsWeeklyOpen_Okay
+    weeklyOpenLine = line.new(Weekly_Time,Weekly_Open,time+(offset*(time - time[1])),Weekly_Open,xloc.bar_time,color = weekly_color, style = CizgiTipi) // x2 ??? 
+    line.delete(weeklyOpenLine[1])  
+    weeklyOpenLAbel = label.new(gerekli,Weekly_Open,'Weekly Open',xloc.bar_time,style = label.style_none)
+    label.delete(weeklyOpenLAbel[1])
+if IsMonthlyOpen_Okay    
+    monthlyOpenLine = line.new(Monthly_Time,Monthly_Open,time+(offset*(time - time[1])),Monthly_Open,xloc.bar_time,color = monthly_color,style = CizgiTipi) // x2 ??? 
+    line.delete(monthlyOpenLine[1]) 
+    monthlyOpenLAbel = label.new(gerekli,Monthly_Open,'Monthly Open',xloc.bar_time,style = label.style_none)
+    label.delete(monthlyOpenLAbel[1])
+
+if Qua_Open
+    qOpen_line = line.new(quarterly_time,quarterly_open,gerekli,quarterly_open,xloc.bar_time, color = c_QuaOpen,style=CizgiTipi)
+    line.delete(qOpen_line[1])
+    qOpen_Label = label.new(gerekli,quarterly_open,"Quarterly Open", xloc = xloc.bar_time,style = label.style_none)
+    label.delete(qOpen_Label[1])
+
+if IsYearlyOpen_Okay
+    yearlyOpenLine = line.new(Yearly_Time,Yearly_Open,time+(offset*(time - time[1])),Yearly_Open,xloc.bar_time,color = yearly_color,style = CizgiTipi) // x2 ??? 
+    line.delete(yearlyOpenLine[1]) 
+    yearlyOpenLAbel = label.new(gerekli,Yearly_Open,'Yearly Open',xloc.bar_time,style = label.style_none)
+    label.delete(yearlyOpenLAbel[1])
+
+// // Monday Range Label // üste if'le ekle error verir. 
+
+// mondayHighLabel = label.new(line_end_right, Monday_High,"Monday High",xloc.bar_time,style =label.style_none)
+// label.delete(mondayHighLabel[1])
+
+// mondayMidLabel = label.new(line_end_right, Monday_Mid,"Monday Mid",xloc.bar_time,style = label.style_none)
+// label.delete(mondayMidLabel[1])
+
+// mondayLowLabel = label.new(line_end_right, Monday_Low, "Monday Low",xloc.bar_time,style = label.style_none)
+// label.delete(mondayLowLabel[1])
+
+
+////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////
+////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////////// QUARTERLY OPEN EKLE ///////
+
+// Previous //
+
+var preDailyHigh = input.bool(defval = true, title ="PDH", inline= "PDH", group ="Previous")
+var c_preDailyHigh = input.color(defval = color.navy,title = "",inline="PDH",group = "Previous")
+
+var preDailyLow = input.bool(defval =true, title ="PDL",inline="PDL",group = "Previous")
+var c_preDailyLow= input.color(defval = color.navy,title = "",inline="PDL",group="Previous")
+
+var preWeeklyHigh = input.bool(true,"PWH",inline = "PWH", group = "Previous")
+var c_preWeeklyHigh = input.color(defval = color.fuchsia ,title = "", inline = "PWH",group = "Previous")
+
+var preWeeklyLow = input.bool(true,"PWL",inline = "PWL", group = "Previous")
+var c_preWeeklyLow = input.color(defval = color.fuchsia ,title = "", inline = "PWL",group = "Previous")
+
+var preWeeklyOpen = input.bool(defval = true, title = "PWO", inline = "PWO",group = "Previous")
+var c_preWeeklyOpen = input.color(defval = color.teal, title= "",inline =  "PWO",group = "Previous")
+
+var preMonthlyOpen = input.bool(defval = true, title = "PMO", inline = "PMO",group = "Previous")
+var c_preMonthlyOpen = input.color(defval = color.silver, title= "",inline =  "PMO",group = "Previous")
+
+
+
+
+// Previous Veri Çekme // 
+
+pDailyTime = request.security(syminfo.tickerid,"D",time[1],lookahead = barmerge.lookahead_off)
+[pDaily_High,pDaily_Low] = request.security(syminfo.tickerid,"D",[high[1],low[1]],lookahead = barmerge.lookahead_off)
+
+pWeeklyTime = request.security(syminfo.tickerid,"W",time[1], lookahead =barmerge.lookahead_off)
+[pWeekly_High,pWeekly_Low] = request.security(syminfo.tickerid,"W",[high[1],low[1]], lookahead = barmerge.lookahead_off)
+pWeekly_Open = request.security(syminfo.tickerid,"W",open[1],lookahead = barmerge.lookahead_off)
+
+pMonthlyTime = request.security(syminfo.tickerid,"M",time[1],lookahead = barmerge.lookahead_off)
+pMonthlyOpen = request.security(syminfo.tickerid,"M",open[1],lookahead = barmerge.lookahead_off)
+
+/// Previous Line and Label /// 
+
+if preDailyHigh
+    pdh_line = line.new(pDailyTime,pDaily_High,time+(offset*(time - time[1])),pDaily_High, xloc = xloc.bar_time,color = c_preDailyHigh,style = CizgiTipi)
+    line.delete(pdh_line[1])
+    pdh_Label = label.new(gerekli,pDaily_High,'Previous Daily High',xloc.bar_time,style = label.style_none)
+    label.delete(pdh_Label[1])
+    // label ekle// if ekle // input bağla//
+if preDailyLow
+    pdl_line =  line.new(pDailyTime,pDaily_Low,time+(offset*(time - time[1])),pDaily_Low, xloc = xloc.bar_time,color = c_preDailyHigh,style = CizgiTipi)
+    line.delete(pdl_line[1])
+    pdl_Label = label.new(gerekli,pDaily_Low,'Previous Daily low',xloc.bar_time,style = label.style_none)
+    label.delete(pdl_Label[1])
+if preWeeklyHigh
+    pwh_line = line.new(pWeeklyTime,pWeekly_High,time+(offset*(time - time[1])),pWeekly_High,xloc = xloc.bar_time,color = c_preWeeklyHigh,style = CizgiTipi)
+    line.delete(pwh_line[1])
+    pwh_Label = label.new(gerekli,pWeekly_High,"Previous Weekly High",xloc = xloc.bar_time,style = label.style_none)
+    label.delete(pwh_Label[1])
+if preWeeklyLow
+    pwl_line = line.new(pWeeklyTime,pWeekly_Low,time+(offset*(time - time[1])),pWeekly_Low,xloc = xloc.bar_time,color = c_preWeeklyLow,style = CizgiTipi)
+    line.delete(pwl_line[1])
+    pwl_Label = label.new(gerekli,pWeekly_Low,"Previous Weekly Low",xloc = xloc.bar_time,style = label.style_none)
+    label.delete(pwl_Label[1])
+
+if preWeeklyOpen
+    pwo_line = line.new(pWeeklyTime,pWeekly_Open,time+(offset*(time - time[1])),pWeekly_Open, xloc = xloc.bar_time,color = c_preWeeklyOpen,style = CizgiTipi)
+    line.delete(pwo_line[1])
+    pwo_label = label.new(gerekli,pWeekly_Open,"Previous Weekly Open",xloc = xloc.bar_time,style = label.style_none)
+    label.delete(pwo_label[1])
+
+
+if preMonthlyOpen
+    pmo_line = line.new(pMonthlyTime,pMonthlyOpen,time+(offset*(time - time[1])),pMonthlyOpen, xloc = xloc.bar_time,color = c_preMonthlyOpen,style = CizgiTipi)
+    line.delete(pmo_line[1])
+    pmo_label = label.new(gerekli,pMonthlyOpen,"Previous Monthly Open",xloc = xloc.bar_time,style = label.style_none)
+    label.delete(pmo_label[1])
+
+// PMO 
+
+//pmo pwo ekle!!
